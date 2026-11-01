@@ -8,12 +8,14 @@
  * are tried so a slightly tilted hand still matches.
  */
 
-import { drawShadowPath, Shadow2D } from './shadow-projector.js';
+import { drawShadowGroup, ShadowGroup } from './shadow-projector.js';
 
 const SIZE = 64;
 const FIT = 52;
 const TARGET_AREA = 950;
 const ROTATIONS = [-0.3, -0.15, 0, 0.15, 0.3];
+/** A cheaper set for side checks (is that shadow a wolf?). */
+const QUICK_ROTATIONS = [-0.2, 0, 0.2];
 
 export interface Normalization {
   /** Centroid in surface meters. */
@@ -35,7 +37,7 @@ export class ShapeMatcher {
   }
 
   /** Measures centroid and area of a shadow by drawing it once at fit scale. */
-  measure(shadow: Shadow2D, out: Normalization): boolean {
+  measure(shadow: ShadowGroup, out: Normalization): boolean {
     const w = shadow.maxU - shadow.minU;
     const h = shadow.maxV - shadow.minV;
     if (!(w > 0 && h > 0)) return false;
@@ -65,7 +67,7 @@ export class ShapeMatcher {
 
   /** Rasterises a normalised mask into `out` (SIZE*SIZE bytes, 0/1). */
   rasterize(
-    shadow: Shadow2D,
+    shadow: ShadowGroup,
     norm: Normalization,
     rotation: number,
     out: Uint8Array,
@@ -86,11 +88,12 @@ export class ShapeMatcher {
    * right hands (and palm-in versus palm-out) both count.
    * `target` comes from `rasterize(..., 0)`.
    */
-  score(shadow: Shadow2D, norm: Normalization, target: Uint8Array): number {
+  score(shadow: ShadowGroup, norm: Normalization, target: Uint8Array, quick = false): number {
+    const rotations = quick ? QUICK_ROTATIONS : ROTATIONS;
     let best = 0;
-    for (let k = 0; k < ROTATIONS.length * 2; k++) {
-      const mirror = k >= ROTATIONS.length;
-      this.rasterize(shadow, norm, ROTATIONS[k % ROTATIONS.length], this.mask, mirror);
+    for (let k = 0; k < rotations.length * 2; k++) {
+      const mirror = k >= rotations.length;
+      this.rasterize(shadow, norm, rotations[k % rotations.length], this.mask, mirror);
       let inter = 0;
       let union = 0;
       for (let i = 0; i < this.mask.length; i++) {
@@ -106,7 +109,7 @@ export class ShapeMatcher {
   }
 
   private draw(
-    shadow: Shadow2D,
+    shadow: ShadowGroup,
     s: number,
     cu: number,
     cv: number,
@@ -122,6 +125,6 @@ export class ShapeMatcher {
     ctx.translate(-cu, -cv);
     ctx.fillStyle = '#000';
     ctx.strokeStyle = '#000';
-    drawShadowPath(ctx, shadow);
+    drawShadowGroup(ctx, shadow);
   }
 }

@@ -206,3 +206,44 @@ export function drawShadowPath(
     }
   }
 }
+
+/**
+ * One or two hand shadows on the same surface, treated as a single shape.
+ * Two-hand silhouettes (a butterfly) score the union of both hands.
+ */
+export class ShadowGroup {
+  readonly parts: Shadow2D[] = [];
+  count = 0;
+  minU = 0;
+  maxU = 0;
+  minV = 0;
+  maxV = 0;
+
+  get valid(): boolean {
+    return this.count > 0;
+  }
+
+  set(a: Shadow2D | null, b: Shadow2D | null = null): this {
+    this.count = 0;
+    if (a?.valid) this.parts[this.count++] = a;
+    if (b?.valid) this.parts[this.count++] = b;
+    this.minU = this.minV = Infinity;
+    this.maxU = this.maxV = -Infinity;
+    for (let i = 0; i < this.count; i++) {
+      const s = this.parts[i];
+      if (s.minU < this.minU) this.minU = s.minU;
+      if (s.maxU > this.maxU) this.maxU = s.maxU;
+      if (s.minV < this.minV) this.minV = s.minV;
+      if (s.maxV > this.maxV) this.maxV = s.maxV;
+    }
+    return this;
+  }
+}
+
+export function drawShadowGroup(
+  ctx: CanvasRenderingContext2D,
+  group: ShadowGroup,
+  radiusScale = 1,
+): void {
+  for (let i = 0; i < group.count; i++) drawShadowPath(ctx, group.parts[i], radiusScale);
+}
