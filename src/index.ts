@@ -9,7 +9,11 @@ import { World } from '@iwsdk/core';
 import projectOptions from 'virtual:iwsdk-project';
 import { sfx } from './audio.js';
 import { CreatureSystem } from './creature-system.js';
+import { setupLandingPage } from './landing.js';
 import { ShadowSystem } from './shadow-system.js';
+
+// The landing page animates on its own while the 3D world starts up.
+setupLandingPage();
 
 World.create(
   document.getElementById('scene-container') as HTMLDivElement,
@@ -39,6 +43,11 @@ function setupLanding(world: World): void {
       if (supported) return;
       start.hidden = true;
       desktop.textContent = 'Preview in this browser';
+      document.querySelectorAll<HTMLElement>('[data-proxy="start"]').forEach((b) => {
+        if (b.closest('.nav')) b.dataset.proxy = 'desktop';
+        else b.hidden = true;
+      });
+      document.querySelectorAll<HTMLElement>('[data-proxy="desktop"]').forEach((b) => (b.textContent = 'Preview in this browser'));
       note.textContent = 'Open this page in the Meta Quest browser to play in your room.';
     });
 
@@ -59,4 +68,5 @@ function setupLanding(world: World): void {
     showLanding(false);
   });
   xr.addEventListener('sessionend', () => showLanding(true));
+  desktop.addEventListener('click', () => landing.scrollTo({ top: 0 }));
 }
