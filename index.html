@@ -29,6 +29,7 @@
       html, body { margin: 0; height: 100%; background: var(--ink); color: var(--paper); font-family: var(--body); }
       #scene-container, #scene-container canvas { position: fixed; inset: 0; z-index: 0; }
       button { font: inherit; }
+      [hidden] { display: none !important; }
 
       /* ---------- the landing page is a scrolling layer over the 3D canvas ---------- */
       #landing {
@@ -56,7 +57,7 @@
       .brand { display: flex; align-items: center; gap: 10px; color: var(--paper); text-decoration: none; font-family: var(--display); font-size: 20px; letter-spacing: 0.32em; text-transform: uppercase; }
       .brand svg { width: 28px; height: 28px; }
       .nav-links { display: flex; gap: clamp(14px, 2.6vw, 34px); }
-      .nav-links a { color: var(--paper-dim); text-decoration: none; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; position: relative; padding: 6px 0; transition: color 0.3s; }
+      .nav-links a { white-space: nowrap; color: var(--paper-dim); text-decoration: none; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; position: relative; padding: 6px 0; transition: color 0.3s; }
       .nav-links a::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--flame); transform: scaleX(0); transform-origin: left; transition: transform 0.4s var(--ease); }
       .nav-links a:hover, .nav-links a.active { color: var(--paper); }
       .nav-links a:hover::after, .nav-links a.active::after { transform: scaleX(1); }
@@ -289,8 +290,8 @@
         .daily-stage { max-width: 420px; width: 100%; margin: 0 auto; }
         .features { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       }
+      @media (max-width: 900px) { .nav-links { display: none; } }
       @media (max-width: 640px) {
-        .nav-links { display: none; }
         h1 { letter-spacing: 0.08em; }
         .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         .features { grid-template-columns: 1fr; }

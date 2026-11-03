@@ -47,7 +47,9 @@ function setupLanding(world: World): void {
         if (b.closest('.nav')) b.dataset.proxy = 'desktop';
         else b.hidden = true;
       });
-      document.querySelectorAll<HTMLElement>('[data-proxy="desktop"]').forEach((b) => (b.textContent = 'Preview in this browser'));
+      document.querySelectorAll<HTMLElement>('[data-proxy="desktop"]').forEach((b) => {
+        if (!b.closest('.nav')) b.textContent = 'Preview in this browser';
+      });
       note.textContent = 'Open this page in the Meta Quest browser to play in your room.';
     });
 
