@@ -16,7 +16,7 @@ import {
 import { drawShadowGroup } from './shadow-projector.js';
 import { PreparedSilhouette } from './silhouettes.js';
 
-const SIZE = 256;
+const SIZE = 512;
 /** Fraction of the texture the shape's sqrt(area) spans. */
 export const CREATURE_FILL = 0.34;
 
@@ -59,14 +59,14 @@ export function buildCreatureLooks(prepared: PreparedSilhouette[]): CreatureLook
     // Opaque here; the material carries the transparency so overlapping
     // strokes do not darken at the joints.
     const body = new MeshBasicMaterial({
-      map: texture(drawShape(p, '#0a0616', 3)),
+      map: texture(drawShape(p, '#0a0616', 1.5)),
       transparent: true,
       opacity: 0.88,
       depthWrite: false,
       side: DoubleSide,
     });
     const guide = new MeshBasicMaterial({
-      map: texture(drawShape(p, p.def.color, 10)),
+      map: texture(drawShape(p, p.def.color, 20)),
       transparent: true,
       opacity: 0.3,
       blending: AdditiveBlending,

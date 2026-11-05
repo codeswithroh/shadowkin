@@ -169,42 +169,141 @@ export function projectHand(
   return out;
 }
 
+/** Adds a round-ended tapered limb from (ax, ay) to (bx, by) to the current path. */
+function addLimb(
+  ctx: CanvasRenderingContext2D,
+  ax: number,
+  ay: number,
+  ar: number,
+  bx: number,
+  by: number,
+  br: number,
+): void {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const d = Math.sqrt(dx * dx + dy * dy);
+  if (d <= Math.abs(ar - br)) {
+    const r = Math.max(ar, br);
+    const x = ar > br ? ax : bx;
+    const y = ar > br ? ay : by;
+    ctx.moveTo(x + r, y);
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    return;
+  }
+  const angle = Math.atan2(dy, dx);
+  const open = Math.acos((ar - br) / d);
+  ctx.moveTo(ax + Math.cos(angle + open) * ar, ay + Math.sin(angle + open) * ar);
+  ctx.arc(ax, ay, ar, angle + open, angle + Math.PI * 2 - open);
+  ctx.arc(bx, by, br, angle - open, angle + open);
+  ctx.closePath();
+}
+
+const FINGER_WAIST = 0.93;
+const WEB_REACH = 0.3;
+const FOREARM_LENGTH = 2.6;
+const FOREARM_FLARE = 1.4;
+
 /**
  * Draws a shadow into a 2D context whose transform already maps (u, v) meters
- * to pixels. Uses the current fill/stroke style.
+ * to pixels. Uses the current fill/stroke style. Fingers taper and narrow
+ * between knuckles, and the palm has a thumb web, webbing and a heel, so the
+ * outline reads as a hand. `arm` adds the forearm, for display only: scoring
+ * and targets compare the hand alone.
  */
 export function drawShadowPath(
   ctx: CanvasRenderingContext2D,
   shadow: Shadow2D,
   radiusScale = 1,
+  arm = false,
 ): void {
   const p = shadow.points;
   const r = shadow.radii;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
-  ctx.beginPath();
-  for (let i = 0; i < PALM.length; i++) {
-    const j = PALM[i];
-    if (i === 0) ctx.moveTo(p[j * 2], p[j * 2 + 1]);
-    else ctx.lineTo(p[j * 2], p[j * 2 + 1]);
+  const wx = p[0];
+  const wy = p[1];
+  const kx = p[22];
+  const ky = p[23];
+  let sideU = p[42] - p[12];
+  let sideV = p[43] - p[13];
+  const span = Math.sqrt(sideU * sideU + sideV * sideV);
+  if (span > 1e-6) {
+    sideU /= span;
+    sideV /= span;
+  } else {
+    sideU = 1;
+    sideV = 0;
   }
+  // Seen edge-on the palm collapses but the wrist keeps its thickness.
+  const wrist = Math.max(span * 0.36, r[0]);
+  const centerU = (wx + kx) / 2;
+  const centerV = (wy + ky) / 2;
+
+  ctx.beginPath();
+  ctx.moveTo(wx - sideU * wrist, wy - sideV * wrist);
+  // Ball of the thumb, then the web across to the index knuckle.
+  ctx.quadraticCurveTo(p[2] - sideU * r[1] * 0.7, p[3] - sideV * r[1] * 0.7, p[4], p[5]);
+  ctx.quadraticCurveTo(
+    (p[4] + p[12]) / 2 + (centerU - (p[4] + p[12]) / 2) * 0.22,
+    (p[5] + p[13]) / 2 + (centerV - (p[5] + p[13]) / 2) * 0.22,
+    p[12],
+    p[13],
+  );
+  // Webbing sits a little way up the first finger bones.
+  for (let f = 0; f < 3; f++) {
+    const a = 6 + f * 5;
+    const b = a + 5;
+    const webU = (p[a * 2] + (p[a * 2 + 2] - p[a * 2]) * WEB_REACH + p[b * 2] + (p[b * 2 + 2] - p[b * 2]) * WEB_REACH) / 2;
+    const webV =
+      (p[a * 2 + 1] + (p[a * 2 + 3] - p[a * 2 + 1]) * WEB_REACH + p[b * 2 + 1] + (p[b * 2 + 3] - p[b * 2 + 1]) * WEB_REACH) / 2;
+    ctx.lineTo(webU, webV);
+    ctx.lineTo(p[b * 2], p[b * 2 + 1]);
+  }
+  // Heel of the hand down the little-finger side.
+  ctx.quadraticCurveTo(
+    p[40] + sideU * r[20] * 1.5,
+    p[41] + sideV * r[20] * 1.5,
+    wx + sideU * wrist,
+    wy + sideV * wrist,
+  );
+  // Rounded off here so a creature's body has no flat cut; the arm covers it.
+  ctx.quadraticCurveTo(wx + (wx - kx) * 0.2, wy + (wy - ky) * 0.2, wx - sideU * wrist, wy - sideV * wrist);
   ctx.closePath();
   ctx.fill();
-  ctx.lineWidth = r[11] * 1.6 * radiusScale;
+  ctx.lineWidth = r[11] * 1.4 * radiusScale;
   ctx.stroke();
 
+  ctx.beginPath();
   for (const chain of CHAINS) {
     for (let i = 0; i < chain.length - 1; i++) {
       const a = chain[i];
       const b = chain[i + 1];
-      ctx.beginPath();
-      ctx.moveTo(p[a * 2], p[a * 2 + 1]);
-      ctx.lineTo(p[b * 2], p[b * 2 + 1]);
-      ctx.lineWidth = (r[a] + r[b]) * radiusScale;
-      ctx.stroke();
+      const ax = p[a * 2];
+      const ay = p[a * 2 + 1];
+      const bx = p[b * 2];
+      const by = p[b * 2 + 1];
+      const ar = r[a] * radiusScale;
+      const br = r[b] * radiusScale;
+      const mx = (ax + bx) / 2;
+      const my = (ay + by) / 2;
+      const mr = ((ar + br) / 2) * FINGER_WAIST;
+      addLimb(ctx, ax, ay, ar, mx, my, mr);
+      addLimb(ctx, mx, my, mr, bx, by, br);
     }
   }
+  if (arm) {
+    addLimb(
+      ctx,
+      wx,
+      wy,
+      wrist * 0.96,
+      wx + (wx - kx) * FOREARM_LENGTH,
+      wy + (wy - ky) * FOREARM_LENGTH,
+      wrist * FOREARM_FLARE,
+    );
+  }
+  ctx.fill();
 }
 
 /**
@@ -244,6 +343,7 @@ export function drawShadowGroup(
   ctx: CanvasRenderingContext2D,
   group: ShadowGroup,
   radiusScale = 1,
+  arm = false,
 ): void {
-  for (let i = 0; i < group.count; i++) drawShadowPath(ctx, group.parts[i], radiusScale);
+  for (let i = 0; i < group.count; i++) drawShadowPath(ctx, group.parts[i], radiusScale, arm);
 }

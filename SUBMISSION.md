@@ -18,7 +18,7 @@ Meta VR Start Developer Competition 2026 · deadline **Nov 18, 2026, 12:00 PM PT
 
 Shadow puppetry is centuries old and needs nothing but a light and your hands. Shadowkin adds the one thing it never had: **your shadow can come alive.**
 
-Tap *Light the lantern* in the Quest Browser and a small paper lantern lights up in front of you. Raise a hand and its shadow falls on your **real wall or desk**, soft-edged and inside a warm pool of lantern light. A faint glowing shape appears under it. Bend your fingers until your shadow fills the glow, hold it, and the shadow peels off the wall as a creature with glowing eyes. It hops around **on your actual surfaces**, keeps to their real edges, and is still there next time.
+Tap *Light the lantern* in the Quest Browser and a small paper lantern lights up in front of you. Raise a hand and its shadow falls on your **real wall or desk**, crisp-edged, forearm and all, inside a warm pool of lantern light. A faint glowing shape appears under it. Bend your fingers until your shadow fills the glow, hold it, and the shadow peels off the wall as a creature with glowing eyes. It hops around **on your actual surfaces**, keeps to their real edges, and is still there next time.
 
 **It only works in mixed reality.** Shadows are cast from a virtual flame through your tracked hand joints onto surfaces from Scene Understanding. Move your hand toward the lantern and the shadow grows. Move it toward the wall and the edge sharpens, just like a real one. A table, a wall or a window each becomes a different stage. In a room with no scan, a paper screen appears so the game still works.
 

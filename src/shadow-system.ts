@@ -73,14 +73,15 @@ const WOLF_THRESHOLD = 0.62;
 const SCORE_INTERVAL = 1 / 15;
 const WOLF_INTERVAL = 1 / 5;
 const MAX_CREATURES = 10;
-const SHADOW_CANVAS = 256;
+const SHADOW_CANVAS = 512;
 const SURFACE_OFFSET = 0.003;
 const VIRTUAL_SCREEN_DISTANCE = 0.8;
 const PAPER_W = 0.9;
 const PAPER_H = 0.6;
 const PINCH_DISTANCE = 0.022;
 const LANTERN_GRAB_RADIUS = 0.09;
-const FLAME_RADIUS = 0.007;
+const FLAME_RADIUS = 0.0015;
+const ARM_SHIFT = 0.5;
 /** Surfaces further than this many hand-distances from the lantern are ignored. */
 const MAX_MAGNIFICATION = 24;
 const SAVE_INTERVAL = 5;
@@ -181,6 +182,7 @@ export class ShadowSystem extends createSystem({
 
   private surfacePool: Surface[] = [];
   private surfaceCount = 0;
+  private armFadeGradient: CanvasGradient | null = null;
   private desktopSurfaces: Surface[] = [];
   private virtualScreen!: Surface;
   private virtualScreenMesh!: Mesh;
@@ -926,9 +928,15 @@ export class ShadowSystem extends createSystem({
     const surface = hand.surface!;
     const cu = (group.minU + group.maxU) / 2;
     const cv = (group.minV + group.maxV) / 2;
-    const extent = Math.max(group.maxU - group.minU, group.maxV - group.minV) * 1.3 + 0.06;
+    const extent = Math.max(group.maxU - group.minU, group.maxV - group.minV) * 2.1 + 0.06;
+    // Slide the canvas down the arm of a lone hand so the forearm stays in it.
+    const first = group.parts[0];
+    const armU = group.count === 1 ? (first.points[0] - first.points[22]) * ARM_SHIFT : 0;
+    const armV = group.count === 1 ? (first.points[1] - first.points[23]) * ARM_SHIFT : 0;
+    const meshU = cu + armU;
+    const meshV = cv + armV;
     hand.mesh.visible = true;
-    this.placeOnSurface(hand.mesh, surface, cu, cv, SURFACE_OFFSET);
+    this.placeOnSurface(hand.mesh, surface, meshU, meshV, SURFACE_OFFSET);
     hand.mesh.scale.set(extent, extent, 1);
 
     // A pool of lantern light on the surface around the shadow.
@@ -946,23 +954,41 @@ export class ShadowSystem extends createSystem({
     const layer = hand.layerCtx;
     layer.setTransform(1, 0, 0, 1, 0, 0);
     layer.clearRect(0, 0, SHADOW_CANVAS, SHADOW_CANVAS);
-    layer.setTransform(px, 0, 0, -px, SHADOW_CANVAS / 2 - cu * px, SHADOW_CANVAS / 2 + cv * px);
+    layer.setTransform(px, 0, 0, -px, SHADOW_CANVAS / 2 - meshU * px, SHADOW_CANVAS / 2 + meshV * px);
     layer.fillStyle = '#0a0616';
     layer.strokeStyle = '#0a0616';
-    drawShadowGroup(layer, group);
+    drawShadowGroup(layer, group, 1, true);
+
+    // The forearm runs off the edge of this canvas, so let it leave the light.
+    layer.setTransform(1, 0, 0, 1, 0, 0);
+    layer.globalCompositeOperation = 'destination-in';
+    layer.fillStyle = this.armFade(layer);
+    layer.fillRect(0, 0, SHADOW_CANVAS, SHADOW_CANVAS);
+    layer.globalCompositeOperation = 'source-over';
 
     // Penumbra grows with the hand's distance from the surface, like a real
     // shadow from a small flame.
-    const blur = Math.min(Math.max(FLAME_RADIUS * (t - 1) * px * 1.5, 1), 7);
+    const blur = Math.min(Math.max(FLAME_RADIUS * (t - 1) * px, 0.4), 1.6);
     const ctx = hand.ctx;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, SHADOW_CANVAS, SHADOW_CANVAS);
-    ctx.globalAlpha = 0.82;
+    ctx.globalAlpha = 0.9;
     ctx.filter = `blur(${blur.toFixed(1)}px)`;
     ctx.drawImage(hand.layer, 0, 0);
     ctx.globalAlpha = 1;
     ctx.filter = 'none';
     hand.texture.needsUpdate = true;
+  }
+
+  private armFade(ctx: CanvasRenderingContext2D): CanvasGradient {
+    if (!this.armFadeGradient) {
+      const c = SHADOW_CANVAS / 2;
+      const g = ctx.createRadialGradient(c, c, c * 0.8, c, c, c);
+      g.addColorStop(0, '#000');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      this.armFadeGradient = g;
+    }
+    return this.armFadeGradient;
   }
 
   /** The shape to make, as a glow the shadow should fill, sized to the player's own shadow. */

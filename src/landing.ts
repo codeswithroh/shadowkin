@@ -473,9 +473,9 @@ class HeroWall {
     sctx.setTransform(px, 0, 0, -px, this.ox * hs, this.oy * hs);
     sctx.fillStyle = '#000';
     sctx.strokeStyle = '#000';
-    drawShadowGroup(sctx, this.drawGroup);
+    drawShadowGroup(sctx, this.drawGroup, 1, true);
     // Penumbra widens as the hand nears the flame, as a real one does.
-    const blur = clamp(0.008 * (magnification - 1) * this.scale * hs, 1.5, 6);
+    const blur = clamp(0.0025 * (magnification - 1) * this.scale * hs, 0.6, 2.5);
     lctx.globalCompositeOperation = 'destination-out';
     lctx.filter = `blur(${blur}px)`;
     lctx.globalAlpha = 0.94;
